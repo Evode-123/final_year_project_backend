@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/route-timeslots")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 public class RouteTimeSlotController {
 
     private final RouteTimeSlotService routeTimeSlotService;

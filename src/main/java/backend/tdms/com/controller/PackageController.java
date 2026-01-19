@@ -28,7 +28,7 @@ public class PackageController {
      * POST /api/packages/book
      */
     @PostMapping("/book")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Correct syntax
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<?> bookPackage(@RequestBody PackageBookingDTO dto) {
         try {
             log.info("Booking package from {} to {}", dto.getSenderNames(), dto.getReceiverNames());
@@ -51,7 +51,8 @@ public class PackageController {
     }
 
     /**
-     * Track package by tracking number (PUBLIC)
+     * ✅ Track package by tracking number (PUBLIC - no auth required)
+     * Anyone with tracking number can track their package
      * GET /api/packages/track/{trackingNumber}
      */
     @GetMapping("/track/{trackingNumber}")
@@ -67,12 +68,58 @@ public class PackageController {
         }
     }
 
+    // ========================================
+    // ✅ NEW: USER-SPECIFIC ENDPOINTS
+    // ========================================
+
+    /**
+     * ✅ NEW: Get packages sent by current user
+     * Uses user's phone number from profile
+     * GET /api/packages/my-sent-packages
+     */
+    @GetMapping("/my-sent-packages")
+    @PreAuthorize("hasAnyRole('OTHER_USER', 'RECEPTIONIST', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<List<PackageResponseDTO>> getMySentPackages() {
+        log.info("Getting sent packages for current user");
+        List<PackageResponseDTO> packages = packageService.getMySentPackages();
+        return ResponseEntity.ok(packages);
+    }
+
+    /**
+     * ✅ NEW: Get packages where current user is receiver
+     * Uses user's phone number from profile
+     * GET /api/packages/my-received-packages
+     */
+    @GetMapping("/my-received-packages")
+    @PreAuthorize("hasAnyRole('OTHER_USER', 'RECEPTIONIST', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<List<PackageResponseDTO>> getMyReceivedPackages() {
+        log.info("Getting received packages for current user");
+        List<PackageResponseDTO> packages = packageService.getMyReceivedPackages();
+        return ResponseEntity.ok(packages);
+    }
+
+    /**
+     * ✅ NEW: Get package statistics for current user
+     * GET /api/packages/my-statistics
+     */
+    @GetMapping("/my-statistics")
+    @PreAuthorize("hasAnyRole('OTHER_USER', 'RECEPTIONIST', 'ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getMyPackageStatistics() {
+        log.info("Getting package statistics for current user");
+        Map<String, Object> stats = packageService.getMyPackageStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+    // ========================================
+    // EXISTING ENDPOINTS (for staff)
+    // ========================================
+
     /**
      * Mark package as arrived
      * PUT /api/packages/{id}/arrived
      */
     @PutMapping("/{id}/arrived")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Correct syntax
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<?> markAsArrived(@PathVariable Long id) {
         try {
             PackageResponseDTO pkg = packageService.markPackageAsArrived(id);
@@ -97,7 +144,7 @@ public class PackageController {
      * POST /api/packages/collect
      */
     @PostMapping("/collect")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Correct syntax
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<?> collectPackage(@RequestBody PackageCollectionDTO dto) {
         try {
             log.info("Collecting package ID: {} by {}", dto.getPackageId(), dto.getCollectedByName());
@@ -119,88 +166,88 @@ public class PackageController {
     }
 
     /**
-     * Get packages for a specific trip
+     * Get packages for a specific trip (STAFF ONLY)
      * GET /api/packages/trip/{tripId}
      */
     @GetMapping("/trip/{tripId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getPackagesForTrip(@PathVariable Long tripId) {
         List<PackageResponseDTO> packages = packageService.getPackagesForTrip(tripId);
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get packages by sender phone
+     * Get packages by sender phone (STAFF ONLY)
      * GET /api/packages/sender/{phone}
      */
     @GetMapping("/sender/{phone}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')") // ✅ Added RECEPTIONIST
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<List<PackageResponseDTO>> getPackagesBySender(@PathVariable String phone) {
         List<PackageResponseDTO> packages = packageService.getPackagesBySender(phone);
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get packages by receiver phone
+     * Get packages by receiver phone (STAFF ONLY)
      * GET /api/packages/receiver/{phone}
      */
     @GetMapping("/receiver/{phone}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getPackagesByReceiver(@PathVariable String phone) {
         List<PackageResponseDTO> packages = packageService.getPackagesByReceiver(phone);
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get packages by status
+     * Get packages by status (STAFF ONLY)
      * GET /api/packages/status/{status}
      */
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getPackagesByStatus(@PathVariable String status) {
         List<PackageResponseDTO> packages = packageService.getPackagesByStatus(status);
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get all arrived packages (ready for collection)
+     * Get all arrived packages (STAFF ONLY)
      * GET /api/packages/arrived
      */
     @GetMapping("/arrived")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getArrivedPackages() {
         List<PackageResponseDTO> packages = packageService.getArrivedPackages();
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get all in-transit packages
+     * Get all in-transit packages (STAFF ONLY)
      * GET /api/packages/in-transit
      */
     @GetMapping("/in-transit")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getInTransitPackages() {
         List<PackageResponseDTO> packages = packageService.getInTransitPackages();
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Get all collected packages
+     * Get all collected packages (STAFF ONLY)
      * GET /api/packages/collected
      */
     @GetMapping("/collected")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Correct syntax
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<PackageResponseDTO>> getCollectedPackages() {
         List<PackageResponseDTO> packages = packageService.getCollectedPackages();
         return ResponseEntity.ok(packages);
     }
 
     /**
-     * Cancel package
+     * Cancel package (STAFF ONLY)
      * PUT /api/packages/{id}/cancel
      */
     @PutMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Correct syntax
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<?> cancelPackage(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
@@ -224,11 +271,11 @@ public class PackageController {
     }
 
     /**
-     * Get package by ID
+     * Get package by ID (STAFF ONLY)
      * GET /api/packages/{id}
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')") // ✅ Added MANAGER
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<?> getPackageById(@PathVariable Long id) {
         try {
             // This would need to be implemented in service

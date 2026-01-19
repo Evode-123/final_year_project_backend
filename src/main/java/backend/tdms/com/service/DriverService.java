@@ -3,14 +3,22 @@ package backend.tdms.com.service;
 import backend.tdms.com.dto.DriverDTO;
 import backend.tdms.com.dto.DriverVehicleAssignmentDTO;
 import backend.tdms.com.model.Driver;
+import backend.tdms.com.model.Role;
+import backend.tdms.com.model.User;
 import backend.tdms.com.model.Vehicle;
 import backend.tdms.com.repository.DriverRepository;
+import backend.tdms.com.repository.RoleRepository;
+import backend.tdms.com.repository.UserRepository;
 import backend.tdms.com.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +29,13 @@ public class DriverService {
 
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final int PASSWORD_LENGTH = 12;
 
     @Transactional
     public Driver createDriver(DriverDTO dto) {
@@ -33,6 +48,25 @@ public class DriverService {
             throw new RuntimeException("Driver with this ID number already exists");
         }
 
+        // Check if email is provided for creating user account
+        if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty()) {
+            // Check if email already exists
+            if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
+                throw new RuntimeException("A user with this email already exists");
+            }
+
+            // Create user account for the driver WITH PROFILE ALREADY COMPLETED
+            String plainPassword = createDriverUserAccount(dto.getEmail(), dto.getNames(), dto.getPhoneNumber());
+            
+            // Send credentials email
+            emailService.sendDriverCredentialsEmail(
+                dto.getEmail(), 
+                dto.getNames(),
+                plainPassword
+            );
+        }
+
+        // Create driver record
         Driver driver = new Driver();
         driver.setNames(dto.getNames());
         driver.setPhoneNumber(dto.getPhoneNumber());
@@ -48,6 +82,49 @@ public class DriverService {
         log.info("Driver created: {} (License: {})", savedDriver.getNames(), savedDriver.getLicenseNo());
 
         return savedDriver;
+    }
+
+    /**
+     * Creates a user account for the driver with ROLE_DRIVER
+     * Profile is automatically completed with driver information
+     * Returns the plain text password for email sending
+     */
+    private String createDriverUserAccount(String email, String driverName, String phoneNumber) {
+        String randomPassword = generateRandomPassword();
+        
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(randomPassword));
+        user.setMustChangePassword(true); // Driver must change password on first login
+        user.setProfileCompleted(true);   // ✅ FIXED: Profile is already completed!
+        user.setEnabled(true);
+
+        // Split driver name into first and last name
+        String[] nameParts = driverName.trim().split("\\s+", 2);
+        user.setFirstName(nameParts[0]);
+        user.setLastName(nameParts.length > 1 ? nameParts[1] : "");
+        
+        // Set phone number
+        user.setPhone(phoneNumber);
+
+        // Assign ROLE_DRIVER
+        Role driverRole = roleRepository.findByName("ROLE_DRIVER")
+                .orElseThrow(() -> new RuntimeException("Driver role not found"));
+        user.setRoles(new HashSet<>(Collections.singleton(driverRole)));
+
+        userRepository.save(user);
+        
+        log.info("Driver user account created for: {} (Profile completed automatically)", email);
+        return randomPassword; // Return plain password for email
+    }
+
+    private String generateRandomPassword() {
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            password.append(CHARACTERS.charAt(random.nextInt(CHARACTERS.length())));
+        }
+        return password.toString();
     }
 
     @Transactional

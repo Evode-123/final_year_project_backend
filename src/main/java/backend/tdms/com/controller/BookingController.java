@@ -53,15 +53,32 @@ public class BookingController {
         return ResponseEntity.ok(bookings);
     }
 
+    // ✅ NEW: Get current user's active bookings
+    @GetMapping("/my-bookings")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'OTHER_USER')")
+    public ResponseEntity<List<Booking>> getMyActiveBookings() {
+        List<Booking> bookings = bookingService.getMyActiveBookings();
+        return ResponseEntity.ok(bookings);
+    }
+
+    // ✅ NEW: Get current user's booking history
+    @GetMapping("/my-history")
+    @PreAuthorize("hasAnyRole('RECEPTIONIST', 'OTHER_USER')")
+    public ResponseEntity<List<Booking>> getMyBookingHistory() {
+        List<Booking> bookings = bookingService.getMyBookingHistory();
+        return ResponseEntity.ok(bookings);
+    }
+
     @GetMapping("/trip/{dailyTripId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST','OTHER_USER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<Booking>> getBookingsForTrip(@PathVariable Long dailyTripId) {
         List<Booking> bookings = bookingService.getBookingsForTrip(dailyTripId);
         return ResponseEntity.ok(bookings);
     }
 
+    // ✅ UPDATED: Only for admin/manager/receptionist
     @GetMapping("/today")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST','OTHER_USER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
     public ResponseEntity<List<Booking>> getTodayBookings() {
         List<Booking> bookings = bookingService.getTodayBookings();
         return ResponseEntity.ok(bookings);
@@ -105,7 +122,6 @@ public class BookingController {
                 .body(receipt);
     }
 
-    // Add this new endpoint to BookingController
     @GetMapping("/ticket/{ticketNumber}/download")
     public ResponseEntity<String> downloadTicket(@PathVariable String ticketNumber) {
         Booking booking = bookingService.getBookingByTicketNumber(ticketNumber);
@@ -116,4 +132,16 @@ public class BookingController {
                 .contentType(MediaType.TEXT_HTML)
                 .body(ticketHTML);
     }
+
+    /**
+     * ✅ NEW: Get all bookings history (for receptionist/admin/manager)
+     * This allows staff to see all bookings for customer service purposes
+     */
+    @GetMapping("/all-history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MANAGER')")
+    public ResponseEntity<List<Booking>> getAllBookingsHistory() {
+        List<Booking> bookings = bookingService.getAllBookingsHistory();
+        return ResponseEntity.ok(bookings);
+    }
+
 }

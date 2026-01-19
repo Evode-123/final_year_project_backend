@@ -18,7 +18,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -392,6 +394,90 @@ public class PackageService {
         return packageRepository.findByPackageStatus("COLLECTED").stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
+    }
+
+    // PackageService.java - ADD THESE NEW METHODS
+
+    /**
+     * ✅ NEW: Get packages sent by current logged-in user
+     * Uses user's phone number from their profile
+     */
+    public List<PackageResponseDTO> getMySentPackages() {
+        String currentUserEmail = SecurityContextHolder.getContext()
+            .getAuthentication().getName();
+        
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (currentUser.getPhone() == null || currentUser.getPhone().trim().isEmpty()) {
+            throw new RuntimeException("User phone number not found in profile. Please update your profile.");
+        }
+
+        log.info("Getting sent packages for user: {} with phone: {}", 
+            currentUser.getEmail(), currentUser.getPhone());
+
+        return packageRepository.findBySenderPhone(currentUser.getPhone()).stream()
+            .sorted((p1, p2) -> p2.getBookingDate().compareTo(p1.getBookingDate())) // Newest first
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ NEW: Get packages where current user is the receiver
+     * Uses user's phone number from their profile
+     */
+    public List<PackageResponseDTO> getMyReceivedPackages() {
+        String currentUserEmail = SecurityContextHolder.getContext()
+            .getAuthentication().getName();
+        
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (currentUser.getPhone() == null || currentUser.getPhone().trim().isEmpty()) {
+            throw new RuntimeException("User phone number not found in profile. Please update your profile.");
+        }
+
+        log.info("Getting received packages for user: {} with phone: {}", 
+            currentUser.getEmail(), currentUser.getPhone());
+
+        return packageRepository.findByReceiverPhone(currentUser.getPhone()).stream()
+            .sorted((p1, p2) -> p2.getBookingDate().compareTo(p1.getBookingDate())) // Newest first
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ NEW: Get package statistics for current user
+     * Returns total sent, received, in-transit, arrived, collected
+     */
+    public Map<String, Object> getMyPackageStatistics() {
+        List<PackageResponseDTO> sentPackages = getMySentPackages();
+        List<PackageResponseDTO> receivedPackages = getMyReceivedPackages();
+
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Sent package stats
+        stats.put("totalSent", sentPackages.size());
+        stats.put("sentInTransit", sentPackages.stream()
+            .filter(p -> "IN_TRANSIT".equals(p.getPackageStatus())).count());
+        stats.put("sentArrived", sentPackages.stream()
+            .filter(p -> "ARRIVED".equals(p.getPackageStatus())).count());
+        stats.put("sentCollected", sentPackages.stream()
+            .filter(p -> "COLLECTED".equals(p.getPackageStatus())).count());
+        
+        // Received package stats
+        stats.put("totalReceived", receivedPackages.size());
+        stats.put("receivedInTransit", receivedPackages.stream()
+            .filter(p -> "IN_TRANSIT".equals(p.getPackageStatus())).count());
+        stats.put("receivedArrived", receivedPackages.stream()
+            .filter(p -> "ARRIVED".equals(p.getPackageStatus())).count());
+        stats.put("receivedCollected", receivedPackages.stream()
+            .filter(p -> "COLLECTED".equals(p.getPackageStatus())).count());
+        
+        log.info("Package statistics - Sent: {}, Received: {}", 
+            sentPackages.size(), receivedPackages.size());
+
+        return stats;
     }
 
     /**

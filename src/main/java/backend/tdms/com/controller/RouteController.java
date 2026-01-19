@@ -12,13 +12,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/routes")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER','RECEPTIONIST')")
 @RequiredArgsConstructor
 public class RouteController {
 
     private final RouteService routeService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Route> createRoute(@RequestBody RouteDTO routeDTO) {
         Route route = routeService.createRoute(routeDTO);
         return new ResponseEntity<>(route, HttpStatus.CREATED);
@@ -37,7 +37,6 @@ public class RouteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Route> updateRoute(@PathVariable Long id, @RequestBody RouteDTO routeDTO) {
         Route route = routeService.updateRoute(id, routeDTO);
         return ResponseEntity.ok(route);

@@ -136,13 +136,18 @@ public class VehicleInspectionService {
     }
 
     /**
-     * Convert entity to DTO
+     * Convert entity to DTO (with null safety)
      */
     private VehicleInspectionDTO convertToDTO(VehicleInspection inspection) {
         VehicleInspectionDTO dto = new VehicleInspectionDTO();
         dto.setId(inspection.getId());
-        dto.setVehicleId(inspection.getVehicle().getId());
-        dto.setVehiclePlateNo(inspection.getVehicle().getPlateNo());
+        
+        // ✅ Add null check for vehicle
+        if (inspection.getVehicle() != null) {
+            dto.setVehicleId(inspection.getVehicle().getId());
+            dto.setVehiclePlateNo(inspection.getVehicle().getPlateNo());
+        }
+        
         dto.setInspectionDate(inspection.getInspectionDate());
         dto.setNextInspectionDue(inspection.getNextInspectionDue());
         dto.setInspectionStatus(inspection.getInspectionStatus());
@@ -153,20 +158,23 @@ public class VehicleInspectionService {
             dto.setRecordedByEmail(inspection.getRecordedBy().getEmail());
         }
 
-        // Calculate days until due
-        LocalDate today = LocalDate.now();
-        long daysUntilDue = ChronoUnit.DAYS.between(today, inspection.getNextInspectionDue());
-        dto.setDaysUntilDue((int) daysUntilDue);
+        // ✅ Calculate days until due with null check
+        if (inspection.getNextInspectionDue() != null) {
+            LocalDate today = LocalDate.now();
+            long daysUntilDue = ChronoUnit.DAYS.between(today, inspection.getNextInspectionDue());
+            dto.setDaysUntilDue((int) daysUntilDue);
 
-        // Determine urgency
-        if (inspection.getNextInspectionDue() == null) {
-            dto.setUrgency("NEVER_INSPECTED");
-        } else if (inspection.getNextInspectionDue().isBefore(today)) {
-            dto.setUrgency("OVERDUE");
-        } else if (daysUntilDue <= 30) {
-            dto.setUrgency("DUE_SOON");
+            // Determine urgency
+            if (inspection.getNextInspectionDue().isBefore(today)) {
+                dto.setUrgency("OVERDUE");
+            } else if (daysUntilDue <= 30) {
+                dto.setUrgency("DUE_SOON");
+            } else {
+                dto.setUrgency("OK");
+            }
         } else {
-            dto.setUrgency("OK");
+            dto.setUrgency("NEVER_INSPECTED");
+            dto.setDaysUntilDue(0);
         }
 
         return dto;

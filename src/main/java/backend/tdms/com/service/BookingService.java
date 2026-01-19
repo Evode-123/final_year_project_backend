@@ -139,10 +139,11 @@ public class BookingService {
         // Save booking
         Booking savedBooking = bookingRepository.save(booking);
 
-        log.info("Booking created with lock: Ticket {} for customer {} on trip {}", 
+        log.info("Booking created with lock: Ticket {} for customer {} on trip {} by user {}", 
             savedBooking.getTicketNumber(), 
             customer.getNames(), 
-            dailyTrip.getId());
+            dailyTrip.getId(),
+            currentUserEmail);
 
         return savedBooking;
         // Lock automatically released when transaction commits
@@ -171,6 +172,17 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
             .orElseThrow(() -> new RuntimeException("Booking not found"));
 
+        // ✅ SECURITY: Check if user owns this booking
+        String currentUserEmail = SecurityContextHolder.getContext()
+            .getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (booking.getBookedBy() != null && 
+            !booking.getBookedBy().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only cancel your own bookings");
+        }
+
         if (!"CONFIRMED".equals(booking.getBookingStatus())) {
             throw new RuntimeException("Only confirmed bookings can be cancelled");
         }
@@ -184,8 +196,6 @@ public class BookingService {
         booking.setBookingStatus("CANCELLED");
         booking.setCancelledAt(java.time.LocalDateTime.now());
         booking.setCancellationReason(reason);
-        
-        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         booking.setCancelledBy(currentUserEmail);
 
         // Restore available seat
@@ -207,6 +217,7 @@ public class BookingService {
 
     /**
      * Get all bookings for a specific trip
+     * ✅ ADMIN/MANAGER ONLY
      */
     public List<Booking> getBookingsForTrip(Long dailyTripId) {
         DailyTrip dailyTrip = dailyTripRepository.findById(dailyTripId)
@@ -217,12 +228,62 @@ public class BookingService {
 
     /**
      * Get bookings for today
+     * ✅ ADMIN/MANAGER/RECEPTIONIST - All bookings
      */
     public List<Booking> getTodayBookings() {
         java.time.LocalDateTime startOfDay = java.time.LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
         java.time.LocalDateTime endOfDay = java.time.LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
         
         return bookingRepository.findBookingsBetweenDates(startOfDay, endOfDay);
+    }
+
+    /**
+     * ✅ NEW: Get current user's active bookings
+     * Only returns bookings made by the logged-in user
+     */
+    public List<Booking> getMyActiveBookings() {
+        String currentUserEmail = SecurityContextHolder.getContext()
+            .getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return bookingRepository.findAll().stream()
+            .filter(booking -> 
+                booking.getBookedBy() != null && 
+                booking.getBookedBy().getId().equals(currentUser.getId()) &&
+                "CONFIRMED".equals(booking.getBookingStatus())
+            )
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * ✅ NEW: Get all bookings history (for admin/receptionist/manager)
+     * Returns all bookings sorted by newest first
+     */
+    public List<Booking> getAllBookingsHistory() {
+        return bookingRepository.findAll().stream()
+            .sorted((b1, b2) -> b2.getBookingDate().compareTo(b1.getBookingDate()))
+            .collect(Collectors.toList());
+    }
+
+
+    /**
+     * ✅ NEW: Get current user's booking history (all bookings)
+     * Includes confirmed, cancelled, and completed
+     */
+    public List<Booking> getMyBookingHistory() {
+        String currentUserEmail = SecurityContextHolder.getContext()
+            .getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return bookingRepository.findAll().stream()
+            .filter(booking -> 
+                booking.getBookedBy() != null && 
+                booking.getBookedBy().getId().equals(currentUser.getId())
+            )
+            .sorted((b1, b2) -> b2.getBookingDate().compareTo(b1.getBookingDate())) // Newest first
+            .collect(Collectors.toList());
     }
 
     /**

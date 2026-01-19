@@ -12,13 +12,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/vehicles")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 @RequiredArgsConstructor
 public class VehicleController {
 
     private final VehicleService vehicleService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Vehicle> createVehicle(@RequestBody VehicleDTO vehicleDTO) {
         Vehicle vehicle = vehicleService.createVehicle(vehicleDTO);
         return new ResponseEntity<>(vehicle, HttpStatus.CREATED);
@@ -43,14 +43,12 @@ public class VehicleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Vehicle> updateVehicle(@PathVariable Long id, @RequestBody VehicleDTO vehicleDTO) {
         Vehicle vehicle = vehicleService.updateVehicle(id, vehicleDTO);
         return ResponseEntity.ok(vehicle);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteVehicle(@PathVariable Long id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();

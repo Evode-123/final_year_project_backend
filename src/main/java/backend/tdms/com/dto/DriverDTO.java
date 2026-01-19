@@ -18,4 +18,5 @@ public class DriverDTO {
     private String status;
     private Boolean isBackup;
     private LocalDate hiredDate;
+    private String email;
 }

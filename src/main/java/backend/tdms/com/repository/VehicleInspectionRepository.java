@@ -13,26 +13,56 @@ import java.util.Optional;
 @Repository
 public interface VehicleInspectionRepository extends JpaRepository<VehicleInspection, Long> {
 
-    // Get all inspections for a vehicle (most recent first)
+    /**
+     * Get all inspections for a vehicle (most recent first)
+     */
     @Query("SELECT vi FROM VehicleInspection vi WHERE vi.vehicle.id = :vehicleId ORDER BY vi.inspectionDate DESC")
     List<VehicleInspection> findByVehicleId(@Param("vehicleId") Long vehicleId);
 
-    // Get latest inspection for a vehicle
-    @Query("SELECT vi FROM VehicleInspection vi WHERE vi.vehicle.id = :vehicleId ORDER BY vi.inspectionDate DESC LIMIT 1")
+    /**
+     * ✅ FIXED: Get latest inspection for a vehicle (no LIMIT in JPQL)
+     * Use native query instead
+     */
+    @Query(value = "SELECT * FROM vehicle_inspections WHERE vehicle_id = :vehicleId ORDER BY inspection_date DESC LIMIT 1", 
+           nativeQuery = true)
     Optional<VehicleInspection> findLatestByVehicleId(@Param("vehicleId") Long vehicleId);
 
-    // Find vehicles due for inspection soon (within 30 days)
-    @Query("SELECT vi FROM VehicleInspection vi WHERE vi.nextInspectionDue BETWEEN :today AND :thirtyDaysLater ORDER BY vi.nextInspectionDue ASC")
+    /**
+     * ✅ FIXED: Find LATEST inspection per vehicle that is due soon
+     * Use native SQL with proper JOIN
+     */
+    @Query(value = "SELECT vi.* FROM vehicle_inspections vi " +
+           "INNER JOIN (" +
+           "    SELECT vehicle_id, MAX(id) as max_id " +
+           "    FROM vehicle_inspections " +
+           "    GROUP BY vehicle_id" +
+           ") latest ON vi.id = latest.max_id " +
+           "WHERE vi.next_inspection_due BETWEEN :startDate AND :endDate " +
+           "ORDER BY vi.next_inspection_due ASC", 
+           nativeQuery = true)
     List<VehicleInspection> findDueSoon(
-        @Param("today") LocalDate today,
-        @Param("thirtyDaysLater") LocalDate thirtyDaysLater
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
-    // Find overdue inspections
-    @Query("SELECT vi FROM VehicleInspection vi WHERE vi.nextInspectionDue < :today ORDER BY vi.nextInspectionDue ASC")
+    /**
+     * ✅ FIXED: Find LATEST inspection per vehicle that is overdue
+     * Use native SQL with proper JOIN
+     */
+    @Query(value = "SELECT vi.* FROM vehicle_inspections vi " +
+           "INNER JOIN (" +
+           "    SELECT vehicle_id, MAX(id) as max_id " +
+           "    FROM vehicle_inspections " +
+           "    GROUP BY vehicle_id" +
+           ") latest ON vi.id = latest.max_id " +
+           "WHERE vi.next_inspection_due < :today " +
+           "ORDER BY vi.next_inspection_due ASC", 
+           nativeQuery = true)
     List<VehicleInspection> findOverdue(@Param("today") LocalDate today);
 
-    // Count vehicles by status
+    /**
+     * Count vehicles by inspection status
+     */
     @Query("SELECT COUNT(DISTINCT vi.vehicle.id) FROM VehicleInspection vi WHERE vi.inspectionStatus = :status")
     Long countByStatus(@Param("status") String status);
 }

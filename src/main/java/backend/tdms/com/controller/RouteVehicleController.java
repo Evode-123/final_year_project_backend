@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/route-vehicles")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 public class RouteVehicleController {
     
     private final RouteVehicleService routeVehicleService;
@@ -42,5 +42,11 @@ public class RouteVehicleController {
     public ResponseEntity<Void> removeVehicleFromRoute(@PathVariable Long id) {
         routeVehicleService.removeVehicleFromRoute(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/route/{routeId}")
+    public ResponseEntity<List<RouteVehicle>> getRouteVehicleAssignments(@PathVariable Long routeId) {
+        List<RouteVehicle> assignments = routeVehicleService.getRouteVehicleAssignments(routeId);
+        return ResponseEntity.ok(assignments);
     }
 }

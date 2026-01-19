@@ -59,4 +59,11 @@ public class RouteVehicleService {
         routeVehicle.setIsActive(false);
         routeVehicleRepository.save(routeVehicle);
     }
+
+    @Transactional
+    public List<RouteVehicle> getRouteVehicleAssignments(Long routeId) {
+        return routeVehicleRepository.findAll().stream()
+                .filter(rv -> rv.getIsActive() && rv.getRoute().getId().equals(routeId))
+                .toList();
+    }
 }

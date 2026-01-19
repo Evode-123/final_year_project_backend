@@ -12,13 +12,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/timeslots")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 @RequiredArgsConstructor
 public class TimeSlotController {
 
     private final TimeSlotService timeSlotService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TimeSlot> createTimeSlot(@RequestBody TimeSlotDTO dto) {
         TimeSlot timeSlot = timeSlotService.createTimeSlot(dto);
         return new ResponseEntity<>(timeSlot, HttpStatus.CREATED);
@@ -37,7 +37,6 @@ public class TimeSlotController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TimeSlot> updateTimeSlot(
             @PathVariable Long id,
             @RequestBody TimeSlotDTO dto) {
@@ -46,7 +45,6 @@ public class TimeSlotController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTimeSlot(@PathVariable Long id) {
         timeSlotService.deleteTimeSlot(id);
         return ResponseEntity.noContent().build();
