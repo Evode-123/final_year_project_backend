@@ -146,7 +146,7 @@ public class SettingsService {
                     "Please create another admin account before deleting yours."
                 );
             }
-        }
+        } 
         
         // Send goodbye email
         boolean emailSent = emailService.sendAccountDeletionEmail(user.getEmail(), user.getFirstName());

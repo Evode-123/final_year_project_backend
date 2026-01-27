@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/routes")
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER','RECEPTIONIST')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER','RECEPTIONIST','OTHER_USER')")
 @RequiredArgsConstructor
 public class RouteController {
 

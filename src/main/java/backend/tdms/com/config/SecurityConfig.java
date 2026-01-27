@@ -127,17 +127,21 @@ public class SecurityConfig {
                         // ========================================
                         // BOOKING ENDPOINTS
                         // ========================================
-                        .requestMatchers("POST", "/api/bookings")
+                        .requestMatchers("POST", "/api/bookings", "/api/bookings/with-payment")
+                                .hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "OTHER_USER")
+
+                        .requestMatchers("POST", "/api/bookings/confirm-payment/*")
+                                .hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "OTHER_USER")
+
+                        .requestMatchers("GET", "/api/bookings/payment-status/*")
                                 .hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "OTHER_USER")
 
                         .requestMatchers("PUT", "/api/bookings/*/cancel")
                                 .hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "OTHER_USER")
 
-                        // ✅ NEW: All bookings history for staff
                         .requestMatchers("GET", "/api/bookings/all-history")
                                 .hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
 
-                        // ✅ User's own bookings
                         .requestMatchers("GET", "/api/bookings/my-bookings", "/api/bookings/my-history")
                                 .hasAnyRole("RECEPTIONIST", "OTHER_USER")
 

@@ -64,6 +64,9 @@ public class Booking {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    @Column(name = "paypack_ref")
+    private String paypackRef;
+
     @PrePersist
     protected void onCreate() {
         bookingDate = LocalDateTime.now();
