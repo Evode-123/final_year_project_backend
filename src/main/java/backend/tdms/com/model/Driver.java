@@ -36,6 +36,11 @@ public class Driver {
     @JoinColumn(name = "assigned_vehicle_id", unique = true)
     private Vehicle assignedVehicle;
 
+    // ✅ NEW: Permanent link to User account (survives phone/email changes)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(nullable = false)
     private String status = "ACTIVE"; // ACTIVE, INACTIVE, ON_LEAVE, BACKUP
 

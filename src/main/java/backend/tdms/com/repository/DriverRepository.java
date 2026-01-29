@@ -32,4 +32,11 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     
     @Query("SELECT d FROM Driver d WHERE d.status = 'ACTIVE' AND d.assignedVehicle IS NULL AND d.isBackup = false")
     List<Driver> findAvailableDriversForAssignment();
+
+    // ✅ NEW: Find driver by User ID (permanent link)
+    @Query("SELECT d FROM Driver d WHERE d.user.id = ?1")
+    Optional<Driver> findByUserId(Long userId);
+
+    // ✅ FALLBACK: Find by phone (for backward compatibility during migration)
+    Optional<Driver> findByPhoneNumber(String phoneNumber);
 }

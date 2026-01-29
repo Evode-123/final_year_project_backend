@@ -4,9 +4,9 @@ import backend.tdms.com.dto.DailyCheckResponseDTO;
 import backend.tdms.com.dto.DriverCheckDTO;
 import backend.tdms.com.model.Driver;
 import backend.tdms.com.model.User;
-import backend.tdms.com.repository.DriverRepository;
 import backend.tdms.com.repository.UserRepository;
 import backend.tdms.com.service.DailyVehicleCheckService;
+import backend.tdms.com.service.DriverService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,7 +28,7 @@ import java.util.Map;
 public class DailyVehicleCheckController {
 
     private final DailyVehicleCheckService checkService;
-    private final DriverRepository driverRepository;
+    private final DriverService driverService;  // ✅ Use DriverService
     private final UserRepository userRepository;
 
     /**
@@ -58,7 +58,7 @@ public class DailyVehicleCheckController {
     }
 
     /**
-     * ✅ NEW: Get current driver's vehicle daily check history
+     * ✅ FIXED: Get current driver's vehicle daily check history
      * GET /api/daily-checks/my-vehicle/history?days=30
      */
     @GetMapping("/my-vehicle/history")
@@ -76,13 +76,8 @@ public class DailyVehicleCheckController {
             User user = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
-            // Find driver by matching phone number
-            Driver driver = driverRepository.findAll().stream()
-                .filter(d -> d.getPhoneNumber() != null && 
-                           user.getPhone() != null && 
-                           d.getPhoneNumber().equals(user.getPhone()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Driver profile not found"));
+            // ✅ FIXED: Use DriverService.getDriverByUser() with auto-migration
+            Driver driver = driverService.getDriverByUser(user);
             
             // Check if driver has assigned vehicle
             if (driver.getAssignedVehicle() == null) {
@@ -109,7 +104,7 @@ public class DailyVehicleCheckController {
     }
 
     /**
-     * ✅ NEW: Get latest check for driver's assigned vehicle
+     * ✅ FIXED: Get latest check for driver's assigned vehicle
      * GET /api/daily-checks/my-vehicle/latest
      */
     @GetMapping("/my-vehicle/latest")
@@ -123,13 +118,8 @@ public class DailyVehicleCheckController {
             User user = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
-            // Find driver by matching phone number
-            Driver driver = driverRepository.findAll().stream()
-                .filter(d -> d.getPhoneNumber() != null && 
-                           user.getPhone() != null && 
-                           d.getPhoneNumber().equals(user.getPhone()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Driver profile not found"));
+            // ✅ FIXED: Use DriverService.getDriverByUser() with auto-migration
+            Driver driver = driverService.getDriverByUser(user);
             
             // Check if driver has assigned vehicle
             if (driver.getAssignedVehicle() == null) {
@@ -161,7 +151,7 @@ public class DailyVehicleCheckController {
     }
 
     /**
-     * ✅ NEW: Get driver's vehicle information with latest check status
+     * ✅ FIXED: Get driver's vehicle information with latest check status
      * GET /api/daily-checks/my-vehicle
      */
     @GetMapping("/my-vehicle")
@@ -175,13 +165,8 @@ public class DailyVehicleCheckController {
             User user = userRepository.findByEmail(currentUserEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
-            // Find driver by matching phone number
-            Driver driver = driverRepository.findAll().stream()
-                .filter(d -> d.getPhoneNumber() != null && 
-                           user.getPhone() != null && 
-                           d.getPhoneNumber().equals(user.getPhone()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Driver profile not found"));
+            // ✅ FIXED: Use DriverService.getDriverByUser() with auto-migration
+            Driver driver = driverService.getDriverByUser(user);
             
             // Check if driver has assigned vehicle
             if (driver.getAssignedVehicle() == null) {

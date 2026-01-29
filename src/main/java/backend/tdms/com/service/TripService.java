@@ -5,7 +5,6 @@ import backend.tdms.com.model.DailyTrip;
 import backend.tdms.com.model.Driver;
 import backend.tdms.com.model.User;
 import backend.tdms.com.repository.DailyTripRepository;
-import backend.tdms.com.repository.DriverRepository;
 import backend.tdms.com.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 public class TripService {
 
     private final DailyTripRepository dailyTripRepository;
-    private final DriverRepository driverRepository;
+    private final DriverService driverService;  // ✅ Use DriverService instead of direct repo
     private final UserRepository userRepository;
 
     /**
@@ -40,16 +39,8 @@ public class TripService {
         User user = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Find driver by matching phone number
-        Driver driver = driverRepository.findAll().stream()
-            .filter(d -> {
-                boolean phoneMatch = d.getPhoneNumber() != null && 
-                                   user.getPhone() != null && 
-                                   d.getPhoneNumber().equals(user.getPhone());
-                return phoneMatch;
-            })
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("Driver record not found for user: " + user.getEmail()));
+        // ✅ FIXED: Use DriverService.getDriverByUser() with auto-migration
+        Driver driver = driverService.getDriverByUser(user);
 
         if (driver.getAssignedVehicle() == null) {
             log.warn("No vehicle assigned to driver: {}", driver.getNames());

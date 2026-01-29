@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -48,6 +49,8 @@ public class DriverService {
             throw new RuntimeException("Driver with this ID number already exists");
         }
 
+        User driverUser = null;
+
         // Check if email is provided for creating user account
         if (dto.getEmail() != null && !dto.getEmail().trim().isEmpty()) {
             // Check if email already exists
@@ -56,7 +59,8 @@ public class DriverService {
             }
 
             // Create user account for the driver WITH PROFILE ALREADY COMPLETED
-            String plainPassword = createDriverUserAccount(dto.getEmail(), dto.getNames(), dto.getPhoneNumber());
+            String plainPassword = generateRandomPassword();
+            driverUser = createDriverUserAccount(dto.getEmail(), dto.getNames(), dto.getPhoneNumber(), plainPassword);
             
             // Send credentials email
             emailService.sendDriverCredentialsEmail(
@@ -77,9 +81,15 @@ public class DriverService {
         driver.setStatus("ACTIVE");
         driver.setIsBackup(dto.getIsBackup() != null ? dto.getIsBackup() : false);
         driver.setHiredDate(dto.getHiredDate() != null ? dto.getHiredDate() : LocalDate.now());
+        
+        // ✅ NEW: Link to User account if created
+        if (driverUser != null) {
+            driver.setUser(driverUser);
+        }
 
         Driver savedDriver = driverRepository.save(driver);
-        log.info("Driver created: {} (License: {})", savedDriver.getNames(), savedDriver.getLicenseNo());
+        log.info("Driver created: {} (License: {}) - User linked: {}", 
+            savedDriver.getNames(), savedDriver.getLicenseNo(), driverUser != null);
 
         return savedDriver;
     }
@@ -87,16 +97,14 @@ public class DriverService {
     /**
      * Creates a user account for the driver with ROLE_DRIVER
      * Profile is automatically completed with driver information
-     * Returns the plain text password for email sending
+     * Returns the created User entity
      */
-    private String createDriverUserAccount(String email, String driverName, String phoneNumber) {
-        String randomPassword = generateRandomPassword();
-        
+    private User createDriverUserAccount(String email, String driverName, String phoneNumber, String plainPassword) {
         User user = new User();
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(randomPassword));
+        user.setPassword(passwordEncoder.encode(plainPassword));
         user.setMustChangePassword(true); // Driver must change password on first login
-        user.setProfileCompleted(true);   // ✅ FIXED: Profile is already completed!
+        user.setProfileCompleted(true);   // Profile is already completed!
         user.setEnabled(true);
 
         // Split driver name into first and last name
@@ -112,10 +120,10 @@ public class DriverService {
                 .orElseThrow(() -> new RuntimeException("Driver role not found"));
         user.setRoles(new HashSet<>(Collections.singleton(driverRole)));
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
         
         log.info("Driver user account created for: {} (Profile completed automatically)", email);
-        return randomPassword; // Return plain password for email
+        return savedUser;
     }
 
     private String generateRandomPassword() {
@@ -243,6 +251,36 @@ public class DriverService {
         Driver driver = driverRepository.findByAssignedVehicleId(vehicleId)
             .orElseThrow(() -> new RuntimeException("No driver assigned to this vehicle"));
         return convertToDTO(driver);
+    }
+
+    /**
+     * ✅ NEW: Get driver by User (with fallback to phone matching for migration)
+     */
+    public Driver getDriverByUser(User user) {
+        // Try to find by userId first (new method)
+        Optional<Driver> driverByUserId = driverRepository.findByUserId(user.getId());
+        if (driverByUserId.isPresent()) {
+            return driverByUserId.get();
+        }
+
+        // Fallback: Try to find by phone number (old method for backward compatibility)
+        if (user.getPhone() != null && !user.getPhone().trim().isEmpty()) {
+            Optional<Driver> driverByPhone = driverRepository.findByPhoneNumber(user.getPhone());
+            if (driverByPhone.isPresent()) {
+                Driver driver = driverByPhone.get();
+                
+                // ✅ AUTO-MIGRATE: Link the user to driver if not already linked
+                if (driver.getUser() == null) {
+                    driver.setUser(user);
+                    driverRepository.save(driver);
+                    log.info("Auto-migrated driver {} to link with user {}", driver.getNames(), user.getEmail());
+                }
+                
+                return driver;
+            }
+        }
+
+        throw new RuntimeException("Driver record not found for user: " + user.getEmail());
     }
 
     @Transactional
