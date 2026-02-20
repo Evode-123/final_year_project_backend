@@ -32,6 +32,9 @@ public class Package {
     @Column(name = "sender_id_number")
     private String senderIdNumber;
 
+    @Column(name = "sender_address")
+    private String senderAddress;
+
     // Receiver Information
     @Column(name = "receiver_names", nullable = false)
     private String receiverNames;
@@ -45,12 +48,15 @@ public class Package {
     @Column(name = "receiver_id_number", nullable = false)
     private String receiverIdNumber;
 
+    @Column(name = "receiver_address")
+    private String receiverAddress;
+
     // Package Details
     @Column(name = "package_description", length = 500)
     private String packageDescription;
 
     @Column(name = "package_weight")
-    private Double packageWeight; // in kg
+    private Double packageWeight;
 
     @Column(name = "package_value")
     private BigDecimal packageValue;
@@ -68,15 +74,14 @@ public class Package {
     private BigDecimal price;
 
     @Column(name = "payment_status", nullable = false)
-    private String paymentStatus = "PENDING"; // PENDING, PAID, REFUNDED
+    private String paymentStatus = "PENDING";
 
     @Column(name = "payment_method")
-    private String paymentMethod; // CASH, MOBILE_MONEY, CARD
+    private String paymentMethod;
 
     // Status Tracking
     @Column(name = "package_status", nullable = false)
-    private String packageStatus = "PENDING_PICKUP"; 
-    // PENDING_PICKUP, IN_TRANSIT, ARRIVED, COLLECTED, CANCELLED
+    private String packageStatus = "PENDING_PICKUP";
 
     @Column(name = "expected_arrival_time")
     private LocalDateTime expectedArrivalTime;
@@ -130,7 +135,6 @@ public class Package {
     }
 
     private String generateTrackingNumber() {
-        // Format: PKG-YYYYMMDD-XXXXX
         String date = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         String random = String.format("%05d", (int)(Math.random() * 100000));
         return "PKG-" + date + "-" + random;

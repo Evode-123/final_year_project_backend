@@ -1,6 +1,7 @@
 package backend.tdms.com.repository;
 
 import backend.tdms.com.model.Driver;
+import backend.tdms.com.model.User;
 import backend.tdms.com.model.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +40,6 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
 
     // ✅ FALLBACK: Find by phone (for backward compatibility during migration)
     Optional<Driver> findByPhoneNumber(String phoneNumber);
+
+    Optional<Driver> findByUser(User user);
 }

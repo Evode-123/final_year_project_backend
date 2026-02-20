@@ -11,12 +11,14 @@ public class PackageBookingDTO {
     private String senderPhone;
     private String senderEmail;
     private String senderIdNumber;
+    private String senderAddress;
     
     // Receiver Information
     private String receiverNames;
     private String receiverPhone;
     private String receiverEmail;
     private String receiverIdNumber;
+    private String receiverAddress;
     
     // Package Details
     private String packageDescription;

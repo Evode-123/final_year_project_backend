@@ -33,25 +33,12 @@ public class IncidentService {
     public List<DailyTripResponseDTO> getDriverScheduledTrips() {
         String currentUserEmail = SecurityContextHolder.getContext()
             .getAuthentication().getName();
-        
+
         User user = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // ✅ FIX 1: Find driver by matching email or phone
-        // Adjust this logic based on how your Driver and User are linked
-        Driver driver = driverRepository.findAll().stream()
-            .filter(d -> {
-                // Check if driver's phone matches user's phone or email matches user email
-                boolean phoneMatch = d.getPhoneNumber() != null && 
-                                   user.getPhone() != null && 
-                                   d.getPhoneNumber().equals(user.getPhone());
-                
-                // If you have email field in Driver, uncomment this:
-                // boolean emailMatch = d.getEmail() != null && d.getEmail().equals(user.getEmail());
-                
-                return phoneMatch; // || emailMatch if you have email in Driver
-            })
-            .findFirst()
+        // ✅ Use the direct user → driver link instead of phone matching
+        Driver driver = driverRepository.findByUser(user)
             .orElseThrow(() -> new RuntimeException("Driver record not found for user: " + user.getEmail()));
 
         if (driver.getAssignedVehicle() == null) {

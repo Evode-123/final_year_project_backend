@@ -14,11 +14,13 @@ public class PackageResponseDTO {
     // Sender
     private String senderNames;
     private String senderPhone;
+    private String senderAddress;
     
     // Receiver
     private String receiverNames;
     private String receiverPhone;
     private String receiverIdNumber;
+    private String receiverAddress;
     
     // Package Details
     private String packageDescription;
